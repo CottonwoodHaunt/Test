@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Ask Elmer</title>
+</head>
+<body>
+  <h1>Welcome to Cottonwood Corner</h1>
+  <p>Ask Elmer about the haunted attraction below.</p>
+  <input type="text" id="question" placeholder="Type your question..." />
+  <button onclick="askElmer()">Ask Elmer</button>
+  <button onclick="startListening()">🎤 Speak</button>
+  <p id="elmerResponse"></p>
+  <script>
+    async function askElmer(questionText) {
+      const question = questionText || document.getElementById('question').value;
+      const responseElem = document.getElementById('elmerResponse');
+      responseElem.textContent = "Askin' Elmer...";
+
+      try {
+        const response = await fetch('/.netlify/functions/elmer', {
+          method: 'POST',
+          body: JSON.stringify({ question }),
+        });
+        const data = await response.json();
+        responseElem.textContent = data.answer;
+
+        const utterance = new SpeechSynthesisUtterance(data.answer);
+        utterance.voice = speechSynthesis.getVoices().find(v => v.lang === 'en-US');
+        utterance.pitch = 0.8;
+        utterance.rate = 0.85;
+        speechSynthesis.speak(utterance);
+      } catch (err) {
+        responseElem.textContent = "Elmer got spooked... no response.";
+      }
+    }
+
+    function startListening() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'en-US';
+      recognition.start();
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        askElmer(transcript);
+      };
+      recognition.onerror = function() {
+        document.getElementById('elmerResponse').textContent = "Couldn't hear ya quite right.";
+      };
+    }
+  </script>
+</body>
+</html>
